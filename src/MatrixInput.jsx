@@ -89,7 +89,7 @@ export default function MatrixInput({ onSolve }) {
   }
 
   function loadGomoryExample() {
-    setNumVars(2); setNumCons(2); setSense("max"); setUseGomory(true); setError(null);
+    setNumVars(2); setNumCons(2); setSense("min"); setUseGomory(true); setError(null);
     setTimeout(() => {
       setA([[-2,-1,1,0],[-1,-2,0,1]]);
       setB([-7,-7]);
