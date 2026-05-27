@@ -1,0 +1,808 @@
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+// ── Змінні ──────────────────────────────────────────────────────────────────
+:root {
+  --ink:        #0a0a0a;
+  --ink-mid:    #3a3a3a;
+  --ink-soft:   #6b6b6b;
+  --paper:      #f8f7f4;
+  --paper-mid:  #eeecea;
+  --rule:       #d4d0cb;
+  --pivot:      #f0c040;
+  --pivot-row:  #fdf4d0;
+  --pivot-col:  #fdf4d0;
+  --optimal:    #2d6a4f;
+  --infeasible: #c0392b;
+  --gomory:     #5b21b6;
+  --gomory-bg:  #f3f0ff;
+  --gomory-row: #ede9fe;
+  --mono:       'JetBrains Mono', monospace;
+  --sans:       'Syne', sans-serif;
+}
+
+// ── Скидання ────────────────────────────────────────────────────────────────
+*, *::before, *::after { box-sizing: border-box; }
+
+// ── App Shell ───────────────────────────────────────────────────────────────
+.app {
+  min-height: 100vh;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  border-bottom: 2px solid var(--ink);
+  padding: 2.5rem 3rem 2rem;
+  background: var(--ink);
+  color: var(--paper);
+  display: grid;
+  gap: 0.4rem;
+}
+
+.headerTag {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--pivot);
+}
+
+.title {
+  font-family: var(--sans);
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.subtitle {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: #aaa;
+  margin: 0.4rem 0 0;
+}
+
+.main {
+  flex: 1;
+  padding: 2.5rem 3rem;
+  max-width: 960px;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.footer {
+  border-top: 1px solid var(--rule);
+  padding: 1rem 3rem;
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  color: var(--ink-soft);
+  letter-spacing: 0.05em;
+}
+
+// ── Error Banner ─────────────────────────────────────────────────────────────
+.errorBanner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: #fdf0ee;
+  border: 1.5px solid var(--infeasible);
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.5rem;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  color: var(--infeasible);
+}
+.errorIcon {
+  width: 1.4rem;
+  height: 1.4rem;
+  background: var(--infeasible);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+
+// ── Input Panel ──────────────────────────────────────────────────────────────
+.inputPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+}
+
+.section {
+  border-top: 2px solid var(--ink);
+  padding-top: 1.25rem;
+}
+
+.sectionTitle {
+  font-family: var(--sans);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin: 0 0 1.2rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.sectionNum {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 0.1rem 0.4rem;
+}
+
+.formulaHint {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+  font-weight: 400;
+  text-transform: none;
+}
+
+// ── Dimension controls ───────────────────────────────────────────────────────
+.dimRow {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.dimLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  color: var(--ink-mid);
+}
+
+.counter {
+  display: flex;
+  align-items: center;
+  border: 1.5px solid var(--ink);
+
+  button {
+    width: 2rem;
+    height: 2rem;
+    border: none;
+    background: var(--paper-mid);
+    cursor: pointer;
+    font-size: 1rem;
+    font-family: var(--mono);
+    color: var(--ink);
+    transition: background 0.15s;
+    &:hover { background: var(--pivot); }
+  }
+
+  span {
+    width: 2.5rem;
+    text-align: center;
+    font-family: var(--mono);
+    font-weight: 600;
+    font-size: 0.95rem;
+    border-left: 1.5px solid var(--ink);
+    border-right: 1.5px solid var(--ink);
+    padding: 0.25rem 0;
+  }
+}
+
+.senseToggle {
+  display: flex;
+  border: 1.5px solid var(--ink);
+
+  button {
+    flex: 1;
+    padding: 0.3rem 1rem;
+    border: none;
+    background: var(--paper-mid);
+    cursor: pointer;
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--ink-soft);
+    transition: all 0.15s;
+    &:first-child { border-right: 1.5px solid var(--ink); }
+    &:hover { background: var(--paper); color: var(--ink); }
+  }
+}
+
+.senseActive {
+  background: var(--ink) !important;
+  color: var(--paper) !important;
+}
+
+// ── Gomory Checkbox ──────────────────────────────────────────────────────────
+.gomoryCheck {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  padding: 0.85rem 1rem;
+  border: 1.5px solid var(--rule);
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  user-select: none;
+
+  &:hover {
+    border-color: var(--gomory);
+    background: var(--gomory-bg);
+  }
+
+  input[type="checkbox"] { display: none; }
+}
+
+.gomoryCheckActive {
+  border-color: var(--gomory) !important;
+  background: var(--gomory-bg) !important;
+}
+
+.gomoryCheckbox {
+  position: relative;
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+}
+
+.gomoryCheckmark {
+  position: absolute;
+  inset: 0;
+  border: 1.5px solid var(--ink-mid);
+  background: var(--paper);
+  transition: background 0.15s, border-color 0.15s;
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: 0.25rem;
+    top: 0.05rem;
+    width: 0.4rem;
+    height: 0.7rem;
+    border-right: 2px solid #fff;
+    border-bottom: 2px solid #fff;
+    opacity: 0;
+    transform: rotate(45deg) scale(0.5);
+    transition: opacity 0.15s, transform 0.15s;
+  }
+}
+
+// Checked state — спрацьовує через input:checked + сусідній .gomoryCheckmark
+.gomoryCheck input[type="checkbox"]:checked + .gomoryCheckmark {
+  background: var(--gomory);
+  border-color: var(--gomory);
+
+  &::after {
+    opacity: 1;
+    transform: rotate(45deg) scale(1);
+  }
+}
+
+.gomoryLabelText {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.gomoryTag {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  background: var(--gomory);
+  color: #fff;
+  padding: 0.1rem 0.45rem;
+  letter-spacing: 0.04em;
+}
+
+// ── Matrix inputs ────────────────────────────────────────────────────────────
+.objRow {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.cellWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  align-items: center;
+}
+
+.varLabel {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+}
+
+.matInput {
+  width: 5rem;
+  padding: 0.4rem 0.5rem;
+  border: 1.5px solid var(--ink);
+  background: var(--paper);
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  color: var(--ink);
+  text-align: center;
+  outline: none;
+  transition: border-color 0.15s, background 0.15s;
+  -moz-appearance: textfield;
+
+  &::-webkit-outer-spin-button,
+  &::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+  &:focus { border-color: var(--pivot); background: #fffdf0; }
+}
+
+.slackInput { background: var(--paper-mid); color: var(--ink-soft); }
+.rhsInput   { font-weight: 600; }
+
+.tableWrap { overflow-x: auto; }
+
+.matTable {
+  border-collapse: collapse;
+  font-family: var(--mono);
+  font-size: 0.82rem;
+
+  th, td {
+    border: 1px solid var(--rule);
+    padding: 0.25rem 0.35rem;
+    text-align: center;
+  }
+  th {
+    background: var(--paper-mid);
+    font-weight: 600;
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    color: var(--ink-mid);
+  }
+  .rowLabel {
+    background: var(--paper-mid);
+    font-weight: 600;
+    color: var(--ink-mid);
+    min-width: 4rem;
+    border-right: 2px solid var(--ink);
+  }
+  .slackHead { color: var(--ink-soft); }
+  .rhsHead   { border-left: 2px solid var(--ink); font-weight: 700; color: var(--ink); }
+}
+
+.basisSelect {
+  border: 1px solid var(--rule);
+  background: var(--paper);
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  padding: 0.2rem 0.3rem;
+  color: var(--ink);
+  cursor: pointer;
+  outline: none;
+  &:focus { border-color: var(--pivot); }
+}
+
+.hint {
+  margin-top: 0.75rem;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--ink-soft);
+  line-height: 1.6;
+  border-left: 3px solid var(--rule);
+  padding-left: 0.75rem;
+}
+
+// ── Actions ──────────────────────────────────────────────────────────────────
+.actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--rule);
+  flex-wrap: wrap;
+}
+
+.exampleBtn {
+  padding: 0.7rem 1.5rem;
+  border: 1.5px solid var(--ink);
+  background: transparent;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--ink);
+  cursor: pointer;
+  letter-spacing: 0.03em;
+  transition: background 0.15s;
+  &:hover { background: var(--paper-mid); }
+}
+
+.exampleBtnGomory {
+  border-color: var(--gomory);
+  color: var(--gomory);
+  &:hover { background: var(--gomory-bg); }
+}
+
+.solveBtn {
+  padding: 0.7rem 2rem;
+  border: none;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--sans);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: 0.03em;
+  transition: background 0.15s, transform 0.1s;
+  &:hover  { background: #2a2a2a; }
+  &:active { transform: translateY(1px); }
+}
+
+// ── Visualizer ───────────────────────────────────────────────────────────────
+.visualizer {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.vizHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.resetBtn {
+  padding: 0.45rem 1rem;
+  border: 1.5px solid var(--ink);
+  background: transparent;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background 0.15s;
+  &:hover { background: var(--paper-mid); }
+}
+
+.statusBadge {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.3rem 0.8rem;
+  letter-spacing: 0.04em;
+}
+
+.statusIterating  { background: var(--paper-mid); color: var(--ink-mid);   border: 1px solid var(--rule);       }
+.statusOptimal    { background: #e8f5ee;           color: var(--optimal);   border: 1px solid var(--optimal);    }
+.statusInfeasible { background: #fdf0ee;           color: var(--infeasible);border: 1px solid var(--infeasible); }
+.statusGomory     { background: var(--gomory-bg);  color: var(--gomory);    border: 1px solid var(--gomory);     }
+
+.stepCounter {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  strong { color: var(--ink); }
+}
+
+// ── Progress ─────────────────────────────────────────────────────────────────
+.progressTrack {
+  height: 3px;
+  background: var(--rule);
+  position: relative;
+}
+.progressFill {
+  height: 100%;
+  background: var(--ink);
+  transition: width 0.3s ease;
+}
+.progressDots {
+  position: absolute;
+  top: 50%;
+  left: 0; right: 0;
+  transform: translateY(-50%);
+  display: flex;
+  justify-content: space-between;
+}
+.progressDot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--rule);
+  border: 2px solid var(--paper);
+  cursor: pointer;
+  transition: background 0.15s, transform 0.15s;
+  padding: 0;
+  &:hover { transform: scale(1.4); }
+}
+.dotActive     { background: var(--ink)        !important; }
+.dotOptimal    { background: var(--optimal);                }
+.dotInfeasible { background: var(--infeasible);             }
+.dotGomory     { background: var(--gomory);                 }
+
+// ── Explanation card ──────────────────────────────────────────────────────────
+.explanationCard {
+  display: flex;
+  gap: 1.25rem;
+  padding: 1.25rem;
+  background: #fff;
+  border: 1.5px solid var(--ink);
+  align-items: flex-start;
+  transition: border-color 0.2s, background 0.2s;
+}
+.explanationCardGomory {
+  border-color: var(--gomory);
+  background: var(--gomory-bg);
+}
+.explanationNum {
+  font-family: var(--mono);
+  font-size: 2rem;
+  font-weight: 600;
+  color: var(--rule);
+  line-height: 1;
+  min-width: 2.5rem;
+  padding-top: 0.1rem;
+}
+.explanationNumGomory { color: var(--gomory); opacity: 0.4; }
+
+.explanationText {
+  flex: 1;
+  p {
+    margin: 0 0 0.6rem;
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    line-height: 1.6;
+    color: var(--ink-mid);
+  }
+}
+
+.pivotInfo {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.pivotBadge {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  background: var(--pivot);
+  padding: 0.2rem 0.6rem;
+  color: var(--ink);
+  strong { font-weight: 700; }
+}
+.pivotBadgeGomory {
+  background: var(--gomory);
+  color: #fff;
+}
+
+// ── Simplex Table ─────────────────────────────────────────────────────────────
+.simplexTable {
+  border-collapse: collapse;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  min-width: 100%;
+
+  th, td {
+    border: 1px solid var(--rule);
+    padding: 0.45rem 0.75rem;
+    text-align: center;
+    white-space: nowrap;
+    transition: background 0.2s;
+  }
+  thead th {
+    background: var(--paper-mid);
+    font-weight: 600;
+    font-size: 0.73rem;
+    letter-spacing: 0.04em;
+    color: var(--ink-mid);
+    border-bottom: 2px solid var(--ink);
+  }
+}
+
+.cornerCell {
+  background: var(--ink)   !important;
+  color: var(--paper)      !important;
+  font-size: 0.68rem       !important;
+  letter-spacing: 0.06em   !important;
+  border-right: 2px solid var(--ink) !important;
+}
+
+.colHead { position: relative; }
+.colHeadActive { background: #fdf4d0 !important; color: var(--ink) !important; }
+.colHeadNew    { background: var(--gomory-bg) !important; color: var(--gomory) !important; }
+
+.arrowDown { display: block; font-size: 0.9rem; color: var(--pivot); line-height: 1; }
+.arrowRight { margin-left: 0.3rem; color: var(--pivot); font-size: 0.9rem; }
+.arrowGomory { margin-left: 0.3rem; color: var(--gomory); font-size: 0.9rem; }
+
+.newColTag {
+  display: block;
+  font-size: 0.55rem;
+  color: var(--gomory);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.rhsHead {
+  border-left: 2px solid var(--ink) !important;
+  font-weight: 700 !important;
+  color: var(--ink) !important;
+}
+
+.basisCell {
+  background: var(--paper-mid);
+  font-weight: 600;
+  color: var(--ink-mid);
+  border-right: 2px solid var(--ink);
+  font-size: 0.8rem;
+}
+.basisCellGomory {
+  background: var(--gomory)   !important;
+  color: #fff                 !important;
+  border-right-color: #3b0e8e !important;
+}
+
+// Pivot row borders
+.pivotRowTr td,
+.pivotRowTr .basisCell {
+  border-top: 1.5px solid #d4a020;
+  border-bottom: 1.5px solid #d4a020;
+}
+
+// Gomory cut row borders
+.gomoryRowTr td {
+  border-top: 2px solid var(--gomory)    !important;
+  border-bottom: 2px solid var(--gomory) !important;
+}
+
+.dataCell { position: relative; }
+.cellInner { display: inline-block; }
+
+// ── Pivot / Gomory cell highlights ───────────────────────────────────────────
+.cellPivot {
+  background: var(--pivot) !important;
+  font-weight: 700         !important;
+  color: var(--ink)        !important;
+  border: 2px solid #c8930a !important;
+
+  .cellInner {
+    position: relative;
+    &::after {
+      content: '★';
+      position: absolute;
+      top: -0.7em; right: -0.9em;
+      font-size: 0.55em;
+      color: #c8930a;
+    }
+  }
+}
+.cellPivotRow  { background: var(--pivot-row) !important; }
+.cellPivotCol  { background: var(--pivot-col) !important; }
+.cellGomoryRow { background: var(--gomory-row) !important; color: var(--ink) !important; }
+
+.negativeRhs { color: var(--infeasible); font-weight: 600; }
+.rhsCell     { border-left: 2px solid var(--ink); font-weight: 600; }
+
+// ── Objective row ─────────────────────────────────────────────────────────────
+.objRowTr td {
+  background: var(--paper-mid) !important;
+  border-top: 2px solid var(--ink);
+  font-size: 0.8rem;
+  color: var(--ink-mid);
+}
+.objCell       { color: var(--ink-soft); }
+.objCellActive { background: #fdf4d0 !important; color: var(--ink) !important; font-weight: 600; }
+.objValueCell  { border-left: 2px solid var(--ink); font-weight: 700; color: var(--ink) !important; font-size: 0.8rem; }
+
+// ── Legend ────────────────────────────────────────────────────────────────────
+.legend {
+  display: flex;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--ink-soft);
+}
+.legendDot {
+  width: 14px; height: 14px;
+  display: inline-block;
+  border: 1px solid rgba(0,0,0,0.15);
+}
+.ldPivot  { background: var(--pivot);    }
+.ldRow    { background: var(--pivot-row);}
+.ldCol    { background: var(--pivot-col); border-style: dashed; }
+.ldNeg    { background: #fdf0ee; border-color: var(--infeasible); }
+.ldGomory { background: var(--gomory-row); border-color: var(--gomory); }
+
+// ── Navigation ────────────────────────────────────────────────────────────────
+.navBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 0.5rem;
+}
+.navBtn {
+  padding: 0.75rem 2rem;
+  border: 1.5px solid var(--ink);
+  background: transparent;
+  font-family: var(--sans);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  transition: all 0.15s;
+  &:hover:not(:disabled) { background: var(--paper-mid); }
+  &:disabled { opacity: 0.3; cursor: not-allowed; }
+}
+.navBtnPrimary {
+  background: var(--ink);
+  color: var(--paper);
+  &:hover:not(:disabled) { background: #2a2a2a; }
+}
+.navCenter {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+// ── Solution chip ─────────────────────────────────────────────────────────────
+.solutionChip {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  background: #e8f5ee;
+  border: 1.5px solid var(--optimal);
+  padding: 0.5rem 1.25rem;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  color: var(--optimal);
+  strong { color: #1a4a33; font-size: 0.9rem; }
+}
+.solutionChipInteger {
+  background: var(--gomory-bg);
+  border-color: var(--gomory);
+  color: var(--gomory);
+  strong { color: #3b0e8e; }
+}
+.integerBadge {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  background: var(--gomory);
+  color: #fff;
+  padding: 0.1rem 0.45rem;
+}
+.objFinal {
+  border-left: 1px solid currentColor;
+  padding-left: 0.75rem;
+  opacity: 0.8;
+}
+
+// ── Responsive ────────────────────────────────────────────────────────────────
+@media (max-width: 640px) {
+  .header  { padding: 1.5rem; }
+  .main    { padding: 1.5rem; }
+  .dimRow  { gap: 1rem; }
+  .actions { flex-direction: column; }
+  .solveBtn, .exampleBtn { width: 100%; text-align: center; }
+  .navBar  { flex-wrap: wrap; }
+  .navBtn  { flex: 1; }
+}
