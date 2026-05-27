@@ -13,7 +13,7 @@ export default function MatrixInput({ onSolve }) {
   const [numCons,   setNumCons]   = useState(DEFAULT_CONSTRAINTS);
   const [sense,     setSense]     = useState("min");
   const [useGomory, setUseGomory] = useState(false);
-
+  const [error,     setError]     = useState(null); // Стан для помилки
   const totalCols = numVars + numCons;
 
   const [A,     setA]     = useState(() => makeMatrix(DEFAULT_CONSTRAINTS, DEFAULT_VARS + DEFAULT_CONSTRAINTS));
@@ -61,16 +61,25 @@ export default function MatrixInput({ onSolve }) {
   }
 
   function handleSubmit() {
+    const cleanC = c.map(v => typeof v === "string" ? 0 : v);
+
+    // --- ПЕРЕВІРКА НА ДВОЇСТУ ДОПУСТИМІСТЬ ---
+    const isDualFeasible = cleanC.every(val => sense === 'max' ? val <= 1e-5 : val >= -1e-5);
+    if (!isDualFeasible) {
+      setError(`Неможливо застосувати двоїстий симплекс-метод. Для задачі типу "${sense}" всі коефіцієнти цільової функції мають бути ${sense === 'max' ? '≤ 0' : '≥ 0'}.`);
+      return; // Зупиняємо виконання, якщо є помилка
+    }
+    setError(null); // Очищаємо помилку, якщо все добре
+    // -----------------------------------------
+
     const cleanA = A.map(row => row.map(v => typeof v === "string" ? 0 : v));
     const cleanB = b.map(v => typeof v === "string" ? 0 : v);
-    const cleanC = c.map(v => typeof v === "string" ? 0 : v);
+
     onSolve({ A: cleanA, b: cleanB, c: cleanC, basis, sense, gomory: useGomory });
   }
 
-  // Приклад 1: звичайний двоїстий симплекс
-  // min 2x1+3x2; x1+x2>=4, x1+3x2>=6
   function loadDualExample() {
-    setNumVars(2); setNumCons(2); setSense("min"); setUseGomory(false);
+    setNumVars(2); setNumCons(2); setSense("min"); setUseGomory(false); setError(null);
     setTimeout(() => {
       setA([[-1,-1,1,0],[-1,-3,0,1]]);
       setB([-4,-6]);
@@ -79,11 +88,8 @@ export default function MatrixInput({ onSolve }) {
     }, 50);
   }
 
-  // Приклад 2: метод Гоморі (LP-оптимум дробовий)
-  // max x1+x2; 2x1+x2<=7, x1+2x2<=7, x1,x2>=0,integer
-  // В канонічній формі для двоїстого: -2x1-x2+s1=-7, -x1-2x2+s2=-7
   function loadGomoryExample() {
-    setNumVars(2); setNumCons(2); setSense("max"); setUseGomory(true);
+    setNumVars(2); setNumCons(2); setSense("max"); setUseGomory(true); setError(null);
     setTimeout(() => {
       setA([[-2,-1,1,0],[-1,-2,0,1]]);
       setB([-7,-7]);
@@ -131,7 +137,6 @@ export default function MatrixInput({ onSolve }) {
             </label>
           </div>
 
-          {/* Gomory toggle */}
           <label className={`${styles.gomoryCheck} ${useGomory ? styles.gomoryCheckActive : ""}`}>
           <span className={styles.gomoryCheckbox}>
             <input type="checkbox" checked={useGomory} onChange={e => setUseGomory(e.target.checked)} />
@@ -219,6 +224,13 @@ export default function MatrixInput({ onSolve }) {
             (двоїсто допустима, але прямо недопустима — деякі b &lt; 0).
           </p>
         </section>
+
+        {/* Блок відображення помилки */}
+        {error && (
+            <div className={styles.errorAlert}>
+              <strong>⚠ Увага:</strong> {error}
+            </div>
+        )}
 
         {/* ── Дії ── */}
         <div className={styles.actions}>
