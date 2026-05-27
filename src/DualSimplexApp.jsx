@@ -58,10 +58,6 @@ export default function DualSimplexApp() {
                     <StepVisualizer result={result} onReset={handleReset} />
                 )}
             </main>
-
-            <footer className={styles.footer}>
-                <span>Dual Simplex · Gomory Cutting Planes · Jordan–Gauss Elimination</span>
-            </footer>
         </div>
     );
 }
