@@ -1,26 +1,18 @@
 import Fraction from "fraction.js";
 
+// Допоміжна функція для красивого виводу дробів у текстові повідомлення
 function fracStr(v) {
   if (v.d === 1) return String(v.n * v.s);
   return `${v.s < 0 ? '-' : ''}${v.n}/${v.d}`;
 }
+
 /**
- * dualSimplex.js  — ESM версія для Vite/React
- *
- * Двоїстий симплекс-метод з повним записом кроків для покрокової візуалізації.
- *
- * @param {number[][]} A      Матриця обмежень [m × n]
- * @param {number[]}   b      Вектор правих частин [m]
- * @param {number[]}   c      Коефіцієнти ЦФ [n]
- * @param {number[]}   basis  Початковий базис — індекси змінних [m]
- * @param {'max'|'min'} sense Напрямок оптимізації
- * @returns {{ steps, status, solution, objectiveValue }}
+ * dualSimplex.js  — ESM версія для Vite/React (Fraction.js)
  */
 export function dualSimplex(A, b, c, basis, sense = 'max') {
   const m = A.length;
   const n = A[0].length;
 
-  // Автоматично конвертуємо всі числа у дроби
   let tableau  = A.map(row => row.map(v => new Fraction(v)));
   let rhs      = b.map(v => new Fraction(v));
   let c_frac   = c.map(v => new Fraction(v));
@@ -29,6 +21,18 @@ export function dualSimplex(A, b, c, basis, sense = 'max') {
   let objRow   = sense === 'max'
       ? c_frac.map(v => new Fraction(v))
       : c_frac.map(v => v.mul(-1));
+
+  // 🛠 ФІКС: Канонізація рядка оцінок (objRow)
+  // Відновлюємо правильні нулі під поточними базисними змінними
+  for (let i = 0; i < m; i++) {
+    const basicVar = basisIdx[i];
+    const factor = objRow[basicVar];
+    if (factor.n !== 0) {
+      for (let j = 0; j < n; j++) {
+        objRow[j] = objRow[j].sub(factor.mul(tableau[i][j]));
+      }
+    }
+  }
 
   const steps    = [];
   const MAX_ITER = 100;
@@ -62,10 +66,10 @@ export function dualSimplex(A, b, c, basis, sense = 'max') {
 
     // Крок 1: провідний рядок
     let pivotRow = null;
-    let minVal   = new Fraction(0); // Шукаємо значення < 0
+    let minVal   = new Fraction(0);
 
     for (let i = 0; i < m; i++) {
-      if (rhs[i].s < 0) { // Якщо від'ємне
+      if (rhs[i].s < 0) {
         if (pivotRow === null || rhs[i].compare(minVal) < 0) {
           minVal = rhs[i];
           pivotRow = i;
@@ -73,7 +77,6 @@ export function dualSimplex(A, b, c, basis, sense = 'max') {
       }
     }
 
-    // Умова оптимальності
     if (pivotRow === null) {
       steps.push(snapshot(null, null, 'optimal',
           "Усі праві частини ≥ 0. Знайдено оптимальний розв'язок!"));
@@ -103,10 +106,9 @@ export function dualSimplex(A, b, c, basis, sense = 'max') {
       return { steps, status: 'infeasible', solution: null, objectiveValue: null };
     }
 
-    // Знімок ДО перетворення
     steps.push(snapshot(pivotRow, pivotCol, 'iterating',
         `Ітерація ${iter + 1}: провідний елемент a[${pivotRow + 1}][${pivotCol + 1}] = ${fracStr(tableau[pivotRow][pivotCol])}. ` +
-        `Змінна x${pivotCol + 1} входить у базис замість x${basisIdx[pivotRow] + 1}.`));
+        `Змінна x${pivotCol + 1} входить у базис.`));
 
     // Крок 3: Жорданове виключення
     const pivot = tableau[pivotRow][pivotCol];
