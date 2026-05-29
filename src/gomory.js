@@ -1,21 +1,23 @@
+import Fraction from "fraction.js";
 import { dualSimplex } from "./dualSimplex";
 
-const EPS      = 1e-6;
 const MAX_CUTS = 20;
 
-function frac(v) {
-    return v - Math.floor(v);
+function fracStr(v) {
+    return v.d === 1 ? String(v.n * v.s) : `${v.s < 0 ? '-' : ''}${v.n}/${v.d}`;
 }
 
-function isInteger(v) {
-    const f = frac(v);
-    return f < EPS || f > 1 - EPS;
+// Функція для отримання ідеально точної дробової частини (f = x - floor(x))
+function getFrac(f) {
+    const fl = Math.floor(f.valueOf());
+    return f.sub(new Fraction(fl));
 }
 
 export function solveGomory(A, b, c, basis, sense = "min") {
-    let curA     = A.map(row => [...row]);
-    let curB     = [...b];
-    let curC     = [...c];
+    // Якщо прийшли звичайні числа - перетворюємо. Якщо дроби - не страшно.
+    let curA     = A.map(row => row.map(v => new Fraction(v)));
+    let curB     = b.map(v => new Fraction(v));
+    let curC     = c.map(v => new Fraction(v));
     let curBasis = [...basis];
 
     const allSteps       = [];
@@ -40,23 +42,24 @@ export function solveGomory(A, b, c, basis, sense = "min") {
 
         // ── 3. Отримуємо фінальну таблицю ─────────────────────────────────────
         const lastStep = dsResult.steps[dsResult.steps.length - 1];
-        const tableau  = lastStep.tableau;       // [m × n]
-        const rhs      = lastStep.rhs;           // [m]
-        const objRow   = lastStep.objectiveRow;  // [n]
-        const basisNow = lastStep.basis;         // [m]
+        const tableau  = lastStep.tableau;
+        const rhs      = lastStep.rhs;
+        const objRow   = lastStep.objectiveRow;
+        const basisNow = lastStep.basis;
         const m        = tableau.length;
         const n        = tableau[0].length;
 
         // ── 4. Шукаємо рядок з найбільшою дробовою частиною ──────────────────
         let sourceRow = -1;
-        let maxFrac   = EPS;
+        let maxFrac   = new Fraction(0);
 
         for (let i = 0; i < m; i++) {
-            const f = frac(rhs[i]);
-            const effectiveFrac = f > 1 - EPS ? 0 : f;
-            if (effectiveFrac > maxFrac) {
-                maxFrac   = effectiveFrac;
-                sourceRow = i;
+            const f = getFrac(rhs[i]);
+            if (f.n !== 0) { // Якщо дробова частина строго не нуль
+                if (f.compare(maxFrac) > 0) {
+                    maxFrac   = f;
+                    sourceRow = i;
+                }
             }
         }
 
@@ -74,31 +77,30 @@ export function solveGomory(A, b, c, basis, sense = "min") {
         gomoryIterations++;
 
         // ── 5. Будуємо відсікання Гоморі ──────────────────────────────────────
-        // Нове обмеження: -Σ frac(a_ij)·xj + s_new = -frac(rhs[i])
-        const fi             = frac(rhs[sourceRow]);
+        const fi             = getFrac(rhs[sourceRow]);
         const sourceVarIndex = basisNow[sourceRow];
 
         const cutCoeffs = tableau[sourceRow].map(aij => {
-            const f = frac(aij);
-            return f > 1 - EPS ? 0 : -f;   // -frac(aij)
+            const f = getFrac(aij);
+            return f.n === 0 ? new Fraction(0) : f.mul(-1); // -frac(aij)
         });
 
         // ── 6. Розширюємо таблицю: новий стовпець + новий рядок ───────────────
-        const newColIdx  = n;                           // індекс нової змінної s_new
-        const newTableau = tableau.map(row => [...row, 0]);   // +0 у кожен існуючий рядок
+        const newColIdx  = n;
+        const newTableau = tableau.map(row => [...row, new Fraction(0)]);
         const newRhs     = [...rhs];
-        const newObjRow  = [...objRow, 0];              // с̄ для s_new = 0
+        const newObjRow  = [...objRow, new Fraction(0)];
         const newBasis   = [...basisNow];
-        const newC       = [...curC, 0];                // c для s_new = 0
+        const newC       = [...curC, new Fraction(0)];
 
         // Рядок відсікання: [...cutCoeffs, +1] | rhs = -fi
-        newTableau.push([...cutCoeffs, 1]);
-        newRhs.push(-fi);
+        newTableau.push([...cutCoeffs, new Fraction(1)]);
+        newRhs.push(fi.mul(-1));
         newBasis.push(newColIdx);
 
         // ── 7. Крок-маркер gomory_cut ─────────────────────────────────────────
         const nonZeroTerms = cutCoeffs
-            .map((v, j) => (Math.abs(v) > EPS ? `(${v.toFixed(4)})·x${j + 1}` : null))
+            .map((v, j) => (v.n !== 0 ? `(${fracStr(v)})·x${j + 1}` : null))
             .filter(Boolean)
             .join(" + ");
 
@@ -106,15 +108,15 @@ export function solveGomory(A, b, c, basis, sense = "min") {
             `✂ Відсікання Гоморі #${gomoryIterations}: ` +
             `обрано рядок ${sourceRow + 1} ` +
             `(базисна змінна x${sourceVarIndex + 1}, ` +
-            `b = ${rhs[sourceRow].toFixed(6)}, ` +
-            `дробова частина f = ${fi.toFixed(6)}). ` +
-            `Нове обмеження: ${nonZeroTerms || "0"} + s${newColIdx + 1} = ${(-fi).toFixed(6)}.`;
+            `b = ${fracStr(rhs[sourceRow])}, ` +
+            `дробова частина f = ${fracStr(fi)}). ` +
+            `Нове обмеження: ${nonZeroTerms || "0"} + s${newColIdx + 1} = ${fracStr(fi.mul(-1))}.`;
 
         allSteps.push({
             tableau:        newTableau.map(r => [...r]),
             rhs:            [...newRhs],
             objectiveRow:   [...newObjRow],
-            objectiveValue: dsResult.objectiveValue,
+            objectiveValue: new Fraction(lastStep.objectiveValue),
             basis:          [...newBasis],
             pivotRow:       newTableau.length - 1,
             pivotCol:       null,
@@ -137,7 +139,7 @@ export function solveGomory(A, b, c, basis, sense = "min") {
         tableau:        curA.map(r => [...r]),
         rhs:            [...curB],
         objectiveRow:   [],
-        objectiveValue: 0,
+        objectiveValue: new Fraction(0),
         basis:          [...curBasis],
         pivotRow:       null,
         pivotCol:       null,

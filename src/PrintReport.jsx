@@ -1,9 +1,22 @@
 import styles from "./SimplexApp.module.scss";
 
+// ── Оновлена функція форматування для Fraction.js ────────────────────────────
 function fmt(v) {
-    if (typeof v !== "number") return "—";
-    if (Number.isInteger(v)) return String(v);
-    return v.toFixed(4).replace(/\.?0+$/, "");
+    if (v === null || v === undefined) return "—";
+
+    // Якщо це об'єкт бібліотеки fraction.js
+    if (v.n !== undefined && v.d !== undefined) {
+        if (v.d === 1) return String(v.n * v.s); // Ціле число
+        return `${v.s < 0 ? '-' : ''}${v.n}/${v.d}`; // Звичайний дріб
+    }
+
+    // Резервний варіант для звичайних чисел
+    if (typeof v === "number") {
+        if (Number.isInteger(v)) return String(v);
+        return v.toFixed(4).replace(/\.?0+$/, "");
+    }
+
+    return String(v);
 }
 
 const STATUS_LABEL = {
@@ -37,12 +50,17 @@ function StepCard({ step, stepNumber, varLabels, baseCols }) {
     function rhsCellClass(i) {
         const isGomoryRow = isGomoryStep && i === step.gomoryRowIndex;
         const isPivotRow  = i === step.pivotRow && !isGomoryStep;
+
+        // Перевірка на від'ємність для Fraction або Number
+        const val = step.rhs[i];
+        const isNegative = val.s !== undefined ? val.s < 0 : val < -1e-10;
+
         return [
             styles.dataCell,
             styles.rhsCell,
             isGomoryRow ? styles.cellGomoryRow : "",
             isPivotRow  ? styles.cellPivotRow  : "",
-            step.rhs[i] < -1e-10 ? styles.negativeRhs : "",
+            isNegative  ? styles.negativeRhs   : "",
         ].filter(Boolean).join(" ");
     }
 
@@ -161,13 +179,11 @@ function StepCard({ step, stepNumber, varLabels, baseCols }) {
 export default function PrintReport({ steps, solution, objectiveValue, status, sense, date }) {
     if (!steps || steps.length === 0) return null;
 
-    // Стабільна база varLabels від першого кроку
     const baseStep    = steps[0];
     const baseCols    = baseStep.tableau[0].length;
     const baseRows    = baseStep.tableau.length;
     const numOrigVars = baseCols - baseRows;
 
-    // Будуємо varLabels для максимальної ширини таблиці (остання таблиця може бути ширша)
     const maxCols = Math.max(...steps.map(s => s.tableau[0].length));
     const varLabels = Array.from({ length: maxCols }, (_, j) =>
         j < numOrigVars ? `x${j + 1}` : `s${j - numOrigVars + 1}`
@@ -228,14 +244,16 @@ export default function PrintReport({ steps, solution, objectiveValue, status, s
                 {isOptimal && solution && (
                     <div className={styles.printSolutionRow}>
                         <span className={styles.printSummaryLabel}>Розв'язок:&nbsp;</span>
-                        {solution
-                            .map((val, i) => i < numOrigVars && Math.abs(val) > 1e-10
-                                    ? <span key={i} className={styles.printSolutionVar}>
-                    {varLabels[i]}&nbsp;=&nbsp;<strong>{fmt(val)}</strong>
-                  </span>
-                                    : null
-                            )
-                        }
+                        {solution.map((val, i) => {
+                            // Перевіряємо, чи число не дорівнює нулю (для Fraction або звичайного числа)
+                            const isNonZero = val.n !== undefined ? val.n !== 0 : Math.abs(val) > 1e-10;
+
+                            return i < numOrigVars && isNonZero ? (
+                                <span key={i} className={styles.printSolutionVar}>
+                                    {varLabels[i]}&nbsp;=&nbsp;<strong>{fmt(val)}</strong>
+                                </span>
+                            ) : null;
+                        })}
                         {isInteger && (
                             <span className={styles.printIntegerBadge}>∈ ℤ</span>
                         )}
@@ -247,7 +265,6 @@ export default function PrintReport({ steps, solution, objectiveValue, status, s
             <div className={styles.printSteps}>
                 <h2 className={styles.printStepsTitle}>Хід розв'язання</h2>
                 {steps.map((step, i) => {
-                    // varLabels для конкретного кроку (таблиця може бути ширшою після відсікань)
                     const stepCols = step.tableau[0].length;
                     const stepVarLabels = Array.from({ length: stepCols }, (_, j) =>
                         j < numOrigVars ? `x${j + 1}` : `s${j - numOrigVars + 1}`

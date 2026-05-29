@@ -1,3 +1,9 @@
+import Fraction from "fraction.js";
+
+function fracStr(v) {
+  if (v.d === 1) return String(v.n * v.s);
+  return `${v.s < 0 ? '-' : ''}${v.n}/${v.d}`;
+}
 /**
  * dualSimplex.js  — ESM версія для Vite/React
  *
@@ -14,32 +20,39 @@ export function dualSimplex(A, b, c, basis, sense = 'max') {
   const m = A.length;
   const n = A[0].length;
 
-  let tableau  = A.map(row => [...row]);
-  let rhs      = [...b];
+  // Автоматично конвертуємо всі числа у дроби
+  let tableau  = A.map(row => row.map(v => new Fraction(v)));
+  let rhs      = b.map(v => new Fraction(v));
+  let c_frac   = c.map(v => new Fraction(v));
   let basisIdx = [...basis];
-  let objRow   = sense === 'max' ? [...c] : c.map(v => -v);
+
+  let objRow   = sense === 'max'
+      ? c_frac.map(v => new Fraction(v))
+      : c_frac.map(v => v.mul(-1));
 
   const steps    = [];
   const MAX_ITER = 100;
 
   function calcObjective() {
-    let val = 0;
-    for (let i = 0; i < m; i++) val += c[basisIdx[i]] * rhs[i];
+    let val = new Fraction(0);
+    for (let i = 0; i < m; i++) {
+      val = val.add(c_frac[basisIdx[i]].mul(rhs[i]));
+    }
     return val;
   }
 
   function snapshot(pivotRow, pivotCol, status, message) {
     return {
-      tableau:        tableau.map(row => [...row]),
-      rhs:            [...rhs],
-      objectiveRow:   [...objRow],
+      tableau:        tableau.map(row => row.map(v => new Fraction(v))),
+      rhs:            rhs.map(v => new Fraction(v)),
+      objectiveRow:   objRow.map(v => new Fraction(v)),
       objectiveValue: calcObjective(),
       basis:          [...basisIdx],
       pivotRow,
       pivotCol,
       pivotElement:   (pivotRow !== null && pivotCol !== null)
-                        ? tableau[pivotRow][pivotCol]
-                        : null,
+          ? new Fraction(tableau[pivotRow][pivotCol])
+          : null,
       status,
       message,
     };
@@ -49,56 +62,72 @@ export function dualSimplex(A, b, c, basis, sense = 'max') {
 
     // Крок 1: провідний рядок
     let pivotRow = null;
-    let minVal   = -1e-10;
+    let minVal   = new Fraction(0); // Шукаємо значення < 0
+
     for (let i = 0; i < m; i++) {
-      if (rhs[i] < minVal) { minVal = rhs[i]; pivotRow = i; }
+      if (rhs[i].s < 0) { // Якщо від'ємне
+        if (pivotRow === null || rhs[i].compare(minVal) < 0) {
+          minVal = rhs[i];
+          pivotRow = i;
+        }
+      }
     }
 
     // Умова оптимальності
     if (pivotRow === null) {
       steps.push(snapshot(null, null, 'optimal',
-        "Усі праві частини ≥ 0. Знайдено оптимальний розв'язок!"));
-      const solution = new Array(n).fill(0);
-      for (let i = 0; i < m; i++) solution[basisIdx[i]] = rhs[i];
+          "Усі праві частини ≥ 0. Знайдено оптимальний розв'язок!"));
+      const solution = new Array(n).fill(new Fraction(0));
+      for (let i = 0; i < m; i++) solution[basisIdx[i]] = new Fraction(rhs[i]);
       return { steps, status: 'optimal', solution, objectiveValue: calcObjective() };
     }
 
     // Крок 2: провідний стовпець
     let pivotCol = null;
-    let minTheta = Infinity;
+    let minTheta = null;
+
     for (let j = 0; j < n; j++) {
       const aij = tableau[pivotRow][j];
-      if (aij < -1e-10) {
-        const theta = objRow[j] / aij;
-        if (theta < minTheta) { minTheta = theta; pivotCol = j; }
+      if (aij.s < 0) {
+        const theta = objRow[j].div(aij).abs();
+        if (minTheta === null || theta.compare(minTheta) < 0) {
+          minTheta = theta;
+          pivotCol = j;
+        }
       }
     }
 
     if (pivotCol === null) {
       steps.push(snapshot(pivotRow, null, 'infeasible',
-        `Рядок ${pivotRow + 1} (b = ${rhs[pivotRow].toFixed(4)}) не містить від'ємних елементів. Задача не має розв'язку.`));
+          `Рядок ${pivotRow + 1} (b = ${fracStr(rhs[pivotRow])}) не містить від'ємних елементів. Задача не має розв'язку.`));
       return { steps, status: 'infeasible', solution: null, objectiveValue: null };
     }
 
     // Знімок ДО перетворення
     steps.push(snapshot(pivotRow, pivotCol, 'iterating',
-      `Ітерація ${iter + 1}: провідний елемент a[${pivotRow + 1}][${pivotCol + 1}] = ${tableau[pivotRow][pivotCol].toFixed(4)}. ` +
-      `Змінна x${pivotCol + 1} входить у базис замість x${basisIdx[pivotRow] + 1}.`));
+        `Ітерація ${iter + 1}: провідний елемент a[${pivotRow + 1}][${pivotCol + 1}] = ${fracStr(tableau[pivotRow][pivotCol])}. ` +
+        `Змінна x${pivotCol + 1} входить у базис замість x${basisIdx[pivotRow] + 1}.`));
 
     // Крок 3: Жорданове виключення
     const pivot = tableau[pivotRow][pivotCol];
-    for (let j = 0; j < n; j++) tableau[pivotRow][j] /= pivot;
-    rhs[pivotRow] /= pivot;
+    for (let j = 0; j < n; j++) {
+      tableau[pivotRow][j] = tableau[pivotRow][j].div(pivot);
+    }
+    rhs[pivotRow] = rhs[pivotRow].div(pivot);
 
     for (let i = 0; i < m; i++) {
       if (i === pivotRow) continue;
       const factor = tableau[i][pivotCol];
-      for (let j = 0; j < n; j++) tableau[i][j] -= factor * tableau[pivotRow][j];
-      rhs[i] -= factor * rhs[pivotRow];
+      for (let j = 0; j < n; j++) {
+        tableau[i][j] = tableau[i][j].sub(factor.mul(tableau[pivotRow][j]));
+      }
+      rhs[i] = rhs[i].sub(factor.mul(rhs[pivotRow]));
     }
 
     const factorObj = objRow[pivotCol];
-    for (let j = 0; j < n; j++) objRow[j] -= factorObj * tableau[pivotRow][j];
+    for (let j = 0; j < n; j++) {
+      objRow[j] = objRow[j].sub(factorObj.mul(tableau[pivotRow][j]));
+    }
 
     basisIdx[pivotRow] = pivotCol;
   }

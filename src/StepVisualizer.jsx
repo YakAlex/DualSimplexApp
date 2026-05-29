@@ -3,9 +3,21 @@ import styles from "./SimplexApp.module.scss";
 import PrintReport from "./PrintReport";
 
 function fmt(v) {
-  if (typeof v !== "number") return "—";
-  if (Number.isInteger(v)) return String(v);
-  return v.toFixed(4).replace(/\.?0+$/, "");
+  if (v === null || v === undefined) return "—";
+
+  // Якщо це об'єкт бібліотеки fraction.js
+  if (v.n !== undefined && v.d !== undefined) {
+    if (v.d === 1) return String(v.n * v.s); // Знаменник 1 — виводимо як ціле
+    return `${v.s < 0 ? '-' : ''}${v.n}/${v.d}`; // Форматуємо як дріб: 1/3, -2/3
+  }
+
+  // Резервний варіант для звичайних чисел (якщо вони десь проскочать)
+  if (typeof v === "number") {
+    if (Number.isInteger(v)) return String(v);
+    return v.toFixed(4).replace(/\.?0+$/, "");
+  }
+
+  return v;
 }
 
 const STATUS_LABEL = {
@@ -44,7 +56,7 @@ export default function StepVisualizer({ result, onReset }) {
 
       // 4. Налаштування html2pdf
       const options = {
-        margin:       [10, 10, 10, 10],          // Відступи (мм)
+        margin:       [10, 0, 10, 0],          // Відступи (мм)
         filename:     `Simplex_Report_${dateSlug}.pdf`,
         image:        { type: "jpeg", quality: 0.98 },
         html2canvas:  {
@@ -371,7 +383,7 @@ export default function StepVisualizer({ result, onReset }) {
               pointerEvents: "none"
             }}
         >
-          <div ref={reportRef} style={{ width: "794px", background: "#f8f7f4", padding: "20px" }}>
+          <div ref={reportRef} style={{ width: "794px", background: "#f8f7f4", padding: "20px, 40px", boxSizing: "border-box" }}>
             <PrintReport
                 steps={steps}
                 solution={solution}
