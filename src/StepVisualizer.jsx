@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import styles from "./SimplexApp.module.scss";
+import PrintReport from "./PrintReport";
 
 function fmt(v) {
   if (typeof v !== "number") return "—";
@@ -16,13 +17,68 @@ const STATUS_LABEL = {
 };
 
 export default function StepVisualizer({ result, onReset }) {
-  const [idx, setIdx] = useState(0);
-  const { steps, status, solution, objectiveValue } = result;
+  const [idx, setIdx]             = useState(0);
+  const [exporting, setExporting] = useState(false);
+
+  // Створюємо ref для контейнера звіту
+  const reportRef = useRef(null);
+
+  const { steps, status, solution, objectiveValue, sense } = result;
   const step = steps[idx];
 
-  // varLabels динамічно розраховуються на основі ПЕРШОГО кроку.
-  // Це дає стабільну базу: x1..xN, s1..sM — і далі s_(M+1), s_(M+2)
-  // для кожного нового стовпця відсікання Гоморі.
+  // ── Експорт PDF ────────────────────────────────────────────────────────────
+  async function handleExport() {
+    setExporting(true);
+    try {
+      // 1. Динамічно імпортуємо html2pdf (code splitting)
+      const html2pdf = (await import("html2pdf.js")).default;
+
+      // 2. Беремо готовий елемент з DOM (він вже відрендерений React-ом, але прихований)
+      const element = reportRef.current;
+
+      // 3. Формуємо дату для назви файлу
+      const dateSlug = new Date()
+          .toISOString()
+          .slice(0, 10)
+          .replace(/-/g, "");
+
+      // 4. Налаштування html2pdf
+      const options = {
+        margin:       [10, 10, 10, 10],          // Відступи (мм)
+        filename:     `Simplex_Report_${dateSlug}.pdf`,
+        image:        { type: "jpeg", quality: 0.98 },
+        html2canvas:  {
+          scale:       2,                        // 2× для чіткості
+          useCORS:     true,
+          logging:     false,
+          letterRendering: true,
+          scrollY:     0,                        // Запобігає багам при прокрутці сторінки
+        },
+        jsPDF: {
+          unit:        "mm",
+          format:      "a4",
+          orientation: "portrait",
+        },
+        pagebreak: {
+          mode:        ["avoid-all", "css"],     // Поважає page-break-inside: avoid у стилях
+          before:      ".printPageBreakBefore",
+        },
+      };
+
+      // 5. Даємо браузеру мікропаузу на випадок перемальовок
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // 6. Генеруємо та завантажуємо PDF
+      await html2pdf().set(options).from(element).save();
+
+    } catch (err) {
+      console.error("PDF export failed:", err);
+      alert("Помилка при генерації PDF. Перевірте консоль.");
+    } finally {
+      setExporting(false);
+    }
+  }
+
   const baseStep    = steps[0];
   const baseCols    = baseStep.tableau[0].length;
   const baseRows    = baseStep.tableau.length;
@@ -78,11 +134,33 @@ export default function StepVisualizer({ result, onReset }) {
         {/* ── Шапка ── */}
         <div className={styles.vizHeader}>
           <button className={styles.resetBtn} onClick={onReset}>← Нова задача</button>
+
           <div className={`${styles.statusBadge} ${styles[statusInfo.cls]}`}>
             {statusInfo.text}
           </div>
-          <div className={styles.stepCounter}>
-            Крок&nbsp;<strong>{idx + 1}</strong>&nbsp;/&nbsp;{steps.length}
+
+          <div className={styles.vizHeaderRight}>
+            <div className={styles.stepCounter}>
+              Крок&nbsp;<strong>{idx + 1}</strong>&nbsp;/&nbsp;{steps.length}
+            </div>
+            <button
+                className={`${styles.exportBtn} ${exporting ? styles.exportBtnLoading : ""}`}
+                onClick={handleExport}
+                disabled={exporting}
+                title="Завантажити повний звіт у PDF"
+            >
+              {exporting ? (
+                  <>
+                    <span className={styles.exportSpinner} />
+                    Генерація...
+                  </>
+              ) : (
+                  <>
+                    <span className={styles.exportIcon}>⬇</span>
+                    Звіт PDF
+                  </>
+              )}
+            </button>
           </div>
         </div>
 
@@ -281,6 +359,32 @@ export default function StepVisualizer({ result, onReset }) {
             Вперед →
           </button>
         </div>
+
+        {/* ── Прихований контейнер для PDF-звіту (рендериться завжди) ── */}
+        <div
+            style={{
+              position: "absolute",
+              left: 0,
+              top: 0,
+              zIndex: -9999,
+              opacity: 0,
+              pointerEvents: "none"
+            }}
+        >
+          <div ref={reportRef} style={{ width: "794px", background: "#f8f7f4", padding: "20px" }}>
+            <PrintReport
+                steps={steps}
+                solution={solution}
+                objectiveValue={objectiveValue}
+                status={status}
+                sense={sense ?? "min"}
+                date={new Date().toLocaleDateString("uk-UA", {
+                  year: "numeric", month: "long", day: "numeric",
+                })}
+            />
+          </div>
+        </div>
+
       </div>
   );
 }

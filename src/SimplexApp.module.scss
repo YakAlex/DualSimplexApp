@@ -804,6 +804,277 @@
   }
 }
 
+// ════════════════════════════════════════════════════════════
+// EXPORT BUTTON
+// ════════════════════════════════════════════════════════════
+
+.vizHeaderRight {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.exportBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.9rem;
+  border: 1.5px solid var(--ink);
+  background: var(--paper);
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+
+  &:hover:not(:disabled) {
+    background: var(--ink);
+    color: var(--paper);
+  }
+  &:disabled {
+    opacity: 0.6;
+    cursor: wait;
+  }
+}
+
+.exportBtnLoading {
+  border-color: var(--ink-soft);
+  color: var(--ink-soft);
+}
+
+.exportIcon { font-size: 0.8rem; }
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.exportSpinner {
+  display: inline-block;
+  width: 0.7rem;
+  height: 0.7rem;
+  border: 2px solid var(--rule);
+  border-top-color: var(--ink);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+// ════════════════════════════════════════════════════════════
+// PRINT REPORT STYLES
+// ════════════════════════════════════════════════════════════
+
+.printRoot {
+  background: #f8f7f4;
+  color: #0a0a0a;
+  font-family: 'JetBrains Mono', monospace;
+  padding: 0;
+  width: 100%;
+}
+
+// ── Шапка звіту ──────────────────────────────────────────────
+.printHeader {
+  background: #0a0a0a;
+  color: #f8f7f4;
+  padding: 2rem 2.5rem 1.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.printHeaderTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 0.6rem;
+}
+
+.printHeaderTag {
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #f0c040;
+}
+
+.printDate {
+  font-size: 0.65rem;
+  color: #888;
+  letter-spacing: 0.05em;
+}
+
+.printTitle {
+  font-family: 'Syne', sans-serif;
+  font-size: 1.8rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.35rem;
+  line-height: 1.1;
+}
+
+.printSubtitle {
+  font-size: 0.7rem;
+  color: #aaa;
+  margin: 0;
+}
+
+// ── Зведена таблиця ───────────────────────────────────────────
+.printSummary {
+  margin: 0 2.5rem 1.75rem;
+  border: 1.5px solid #0a0a0a;
+  padding: 1rem 1.25rem;
+  background: #fff;
+  page-break-inside: avoid;
+}
+
+.printSummaryGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.printSummaryItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.printSummaryLabel {
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #6b6b6b;
+}
+
+.printSummaryValue {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #0a0a0a;
+}
+
+.printSummaryOptimal    { color: #2d6a4f; }
+.printSummaryInfeasible { color: #c0392b; }
+.printSummaryZ {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0a0a0a;
+}
+
+.printSolutionRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  border-top: 1px solid #d4d0cb;
+  padding-top: 0.65rem;
+  font-size: 0.8rem;
+}
+
+.printSolutionVar {
+  strong { font-size: 0.9rem; }
+}
+
+.printIntegerBadge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: #5b21b6;
+  color: #fff;
+  padding: 0.1rem 0.45rem;
+}
+
+// ── Секція кроків ─────────────────────────────────────────────
+.printSteps {
+  padding: 0 2.5rem 2rem;
+}
+
+.printStepsTitle {
+  font-family: 'Syne', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border-top: 2px solid #0a0a0a;
+  padding-top: 0.75rem;
+  margin: 0 0 1.25rem;
+  color: #3a3a3a;
+}
+
+// ── Картка одного кроку ───────────────────────────────────────
+.printCard {
+  border: 1.5px solid #d4d0cb;
+  margin-bottom: 1.25rem;
+  background: #fff;
+  page-break-inside: avoid;   /* ← ключова властивість для PDF */
+  break-inside: avoid;
+}
+
+.printCardGomory {
+  border-color: #5b21b6;
+  background: #f3f0ff;
+}
+
+.printCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.55rem 0.9rem;
+  border-bottom: 1px solid #d4d0cb;
+  background: #eeecea;
+}
+
+.printCardGomory .printCardHeader {
+  background: #ede9fe;
+  border-bottom-color: #5b21b6;
+}
+
+.printStepNum {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #3a3a3a;
+}
+
+.printStatusLabel {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 0.15rem 0.55rem;
+  letter-spacing: 0.04em;
+  border: 1px solid transparent;
+}
+
+.printStatusOptimal    {
+  background: #e8f5ee;
+  color: #2d6a4f;
+  border-color: #2d6a4f;
+}
+.printStatusInfeasible {
+  background: #fdf0ee;
+  color: #c0392b;
+  border-color: #c0392b;
+}
+.printStatusGomory     {
+  background: #ede9fe;
+  color: #5b21b6;
+  border-color: #5b21b6;
+}
+
+.printMessage {
+  font-size: 0.72rem;
+  color: #3a3a3a;
+  line-height: 1.55;
+  margin: 0.6rem 0.9rem 0.5rem;
+}
+
+// ── Підвал звіту ──────────────────────────────────────────────
+.printFooter {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.75rem 2.5rem;
+  border-top: 2px solid #0a0a0a;
+  font-size: 0.6rem;
+  letter-spacing: 0.06em;
+  color: #6b6b6b;
+  margin-top: 1rem;
+}
+
 // ── Responsive ────────────────────────────────────────────────────────────────
 @media (max-width: 640px) {
   .header  { padding: 1.5rem; }
