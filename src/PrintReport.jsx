@@ -1,13 +1,11 @@
 import styles from "./SimplexApp.module.scss";
 
-// ── Оновлена функція форматування для Fraction.js ────────────────────────────
 function fmt(v) {
     if (v === null || v === undefined) return "—";
 
-    // Якщо це об'єкт бібліотеки fraction.js
-    if (v.n !== undefined && v.d !== undefined) {
-        if (v.d === 1) return String(v.n * v.s); // Ціле число
-        return `${v.s < 0 ? '-' : ''}${v.n}/${v.d}`; // Звичайний дріб
+    // Якщо це об'єкт бібліотеки fraction.js (перевіряємо наявність методу)
+    if (typeof v.toFraction === 'function') {
+        return v.toFraction(); // Бібліотека сама ідеально відформатує дріб або ціле число
     }
 
     // Резервний варіант для звичайних чисел

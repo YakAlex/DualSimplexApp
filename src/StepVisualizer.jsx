@@ -5,19 +5,18 @@ import PrintReport from "./PrintReport";
 function fmt(v) {
   if (v === null || v === undefined) return "—";
 
-  // Якщо це об'єкт бібліотеки fraction.js
-  if (v.n !== undefined && v.d !== undefined) {
-    if (v.d === 1) return String(v.n * v.s); // Знаменник 1 — виводимо як ціле
-    return `${v.s < 0 ? '-' : ''}${v.n}/${v.d}`; // Форматуємо як дріб: 1/3, -2/3
+  // Якщо це об'єкт бібліотеки fraction.js (перевіряємо наявність методу)
+  if (typeof v.toFraction === 'function') {
+    return v.toFraction(); // Бібліотека сама ідеально відформатує дріб або ціле число
   }
 
-  // Резервний варіант для звичайних чисел (якщо вони десь проскочать)
+  // Резервний варіант для звичайних чисел
   if (typeof v === "number") {
     if (Number.isInteger(v)) return String(v);
     return v.toFixed(4).replace(/\.?0+$/, "");
   }
 
-  return v;
+  return String(v);
 }
 
 const STATUS_LABEL = {
